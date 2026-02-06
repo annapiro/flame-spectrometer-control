@@ -7,6 +7,8 @@ from config import *
 
 
 class Spectrum:
+    _CLEAN_PATTERN = re.compile(r'[^\d\s]')
+
     def __init__(self, filepath):
         self.filename = os.path.basename(filepath)
 
@@ -41,7 +43,7 @@ class Spectrum:
 
         # clean the file content from all characters that aren't digits or spaces,
         # split by whitespace and convert values to integers
-        content_list = [int(x) for x in re.sub(r'[^\d\s]', '', content).split()]
+        content_list = [int(x) for x in self._CLEAN_PATTERN.sub('', content).split()]
 
         # too few values means the file is invalid
         if len(content_list) < 10:
