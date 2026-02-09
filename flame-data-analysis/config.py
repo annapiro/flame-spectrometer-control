@@ -1,7 +1,13 @@
 # config.py
 import numpy as np
 
+# spectrum settings
 SPECTRUM_START = 195.033
 SPECTRUM_END = 1052.798
 NR_PIXELS = 3669
 WAVELENGTHS = np.linspace(SPECTRUM_START, SPECTRUM_END, NR_PIXELS)
+
+# auto-integration algorithm thresholds
+UPPER_BOUNDARY = 30000
+LOWER_BOUNDARY = 20000
+INTEGRATION_TIME_LIMIT = 500000
