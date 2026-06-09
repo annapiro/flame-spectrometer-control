@@ -3,7 +3,6 @@ import os
 import re
 
 import matplotlib.pyplot as plt
-import numpy as np
 
 from config import *
 
@@ -102,9 +101,20 @@ class Spectrum:
 
     # TODO: maybe also add string representation?
     def pretty_print(self):
-        print(f"{self.filename}")
         if self.error:
-            print(f"\tError: {self.error}")
-        else:
-            print(f"\tTimestamp: {self.timestamp}")
-            print(f"\tPixels: {len(self.data)}\tMin: {min(self.data)}\tMax: {max(self.data)}")
+            print(f"{self.filename:<33} | ERROR: {self.error}")
+            return
+
+        max_val = max(self.data)
+        min_val = min(self.data)
+        sat_count = sum(1 for v in self.data if v >= SATURATION_VALUE)
+        sat_pct = sat_count / len(self.data) * 100
+
+        print(
+            f"{self.filename:<33}"
+            f" | pixels: {len(self.data)}"
+            f" | min/max: {min_val:>5} / {max_val:>5}"
+            f" | sat: {sat_pct:>5.2f}%"
+        )
+
+        # print(f"\tTimestamp: {self.timestamp}")

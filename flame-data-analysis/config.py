@@ -5,6 +5,7 @@ import numpy as np
 SPECTRUM_START = 195.033
 SPECTRUM_END = 1052.798
 NR_PIXELS = 3669
+SATURATION_VALUE = 33527
 WAVELENGTHS = np.linspace(SPECTRUM_START, SPECTRUM_END, NR_PIXELS)
 
 # auto-integration algorithm thresholds
