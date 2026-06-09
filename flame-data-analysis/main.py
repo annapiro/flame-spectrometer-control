@@ -3,8 +3,8 @@ import os
 
 from tqdm import tqdm
 
-from config import *
-from core import Spectrum
+from flamelib.config import *
+from flamelib import Spectrum
 
 
 # TODO: rewrite for OOP later but right now I don't need it
