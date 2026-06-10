@@ -4,6 +4,7 @@ from tkinter import filedialog
 
 import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
+import numpy as np
 
 from flamelib.config import *
 from flamelib import Spectrum
@@ -14,7 +15,10 @@ class SpectrumViewer(tk.Tk):
         super().__init__()
         self.title("Flame Spectrum Viewer")
         self.geometry("1200x700")
-        self.file_paths = {}
+        self.file_paths: dict = {}
+        self.show_irradiance = tk.BooleanVar(value=False)
+        self.wavelengths: np.ndarray = WAVELENGTHS
+        self.cal_factors: np.ndarray | None = None
         self._build_ui()
 
     def _build_ui(self):
@@ -24,6 +28,11 @@ class SpectrumViewer(tk.Tk):
         tk.Button(top, text="Open folder", command=self._open_folder).pack(side=tk.LEFT)
         self.path_label = tk.Label(top, text="No folder selected", anchor='w', fg='gray')
         self.path_label.pack(side=tk.LEFT, padx=8)
+
+        self.irradiance_check = tk.Checkbutton(top, text="Show irradiance", variable=self.show_irradiance, state=tk.DISABLED, command=self._on_select)
+        self.irradiance_check.pack(side=tk.RIGHT, padx=4)
+        self.cal_button = tk.Button(top, text="● Load calibration", command=self._load_calibration)
+        self.cal_button.pack(side=tk.RIGHT, padx=4)
 
         # main area: left list + right plot
         pane = tk.PanedWindow(self, orient=tk.HORIZONTAL, sashwidth=6)
@@ -71,13 +80,38 @@ class SpectrumViewer(tk.Tk):
             self.file_paths[entry.name] = entry.path
         self.status.config(text=f"{len(files)} spectrum files found")
 
-    def _on_select(self, event):
+    def _load_calibration(self):
+        path = filedialog.askopenfilename(filetypes=[("Calibration files", "*.cal")])
+        if not path:
+            return
+        spectrometer = "Unknown device"
+        wavelengths = []
+        factors = []
+        with open(path, 'r') as f:
+            for line in f:
+                if line.startswith("Spectrometer:"):
+                    spectrometer = line.split(":", 1)[1].strip()
+                stripped = line.strip()
+                if stripped and stripped[0].isdigit():
+                    parts = stripped.split()
+                    wavelengths.append(float(parts[0]))
+                    factors.append(float(parts[1]))
+        self.wavelengths = np.array(wavelengths)
+        self.cal_factors = np.array(factors)
+        print(f"Loaded {len(self.cal_factors)} factors, min={self.cal_factors.min():.4e}, max={self.cal_factors.max():.4e}, zeros={np.sum(self.cal_factors == 0)}")
+        self.cal_button.config(text=f"● {spectrometer}", fg='green')
+        self.irradiance_check.config(state=tk.NORMAL)
+
+    def _on_select(self, event=None):
         selected = [self.listbox.get(i) for i in self.listbox.curselection()]
         if not selected:
             return
 
+        irradiance_mode = self.show_irradiance.get()
+
         self.ax.clear()
-        self.ax.axhline(SATURATION_VALUE, color='red', linestyle='--', linewidth=0.8, alpha=0.6, label='Saturation')
+        if not irradiance_mode:
+            self.ax.axhline(SATURATION_VALUE, color='red', linestyle='--', linewidth=0.8, alpha=0.6, label='Saturation')
 
         errors = []
         for name in selected:
@@ -90,11 +124,15 @@ class SpectrumViewer(tk.Tk):
             if len(spectrum.data) != NR_PIXELS:
                 errors.append(f"{name}: Unexpected pixel count: {len(spectrum.data)}")
                 continue
-            self.ax.plot(WAVELENGTHS, spectrum.data, linewidth=0.8, label=name)
+            # if a calibration file is loaded, this will clip the data to discard dark pixels
+            raw_data = spectrum.data[-len(self.wavelengths):]
+            y = raw_data if not irradiance_mode \
+                else raw_data * self.cal_factors / (spectrum.integration_time_us / 1e6)
+            self.ax.plot(self.wavelengths, y, linewidth=0.8, label=name)
 
         self.ax.set_xlabel("Wavelength [nm]")
-        self.ax.set_ylabel("Counts")
-        self.ax.set_ylim(bottom=0)
+        self.ax.set_ylabel("Irradiance [µW/cm²/nm]" if irradiance_mode else "Counts")
+        # self.ax.set_ylim(bottom=0)
         self.ax.legend(fontsize=7)
         self.ax.grid(True, alpha=0.3)
         self.fig.tight_layout()
