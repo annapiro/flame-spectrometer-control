@@ -4,7 +4,7 @@ import re
 
 import matplotlib.pyplot as plt
 
-from config import *
+from .config import *
 
 
 class Spectrum:
@@ -47,7 +47,11 @@ class Spectrum:
         if len(filename_parts) < 1:
             return
 
-        self.timestamp = datetime.strptime(filename_parts[0], self._TIMESTAMP_FORMAT)
+        try:
+            self.timestamp = datetime.strptime(filename_parts[0], self._TIMESTAMP_FORMAT)
+        # timestamp doesn't match the expected format, leave it out
+        except ValueError as e:
+            print(f"Warning: {self.filename}: {e}")
 
         for part in filename_parts[1:]:
             if part.startswith('F'):
@@ -69,6 +73,8 @@ class Spectrum:
 
         # split by whitespace and convert values to integers
         arr = np.fromstring(clean, sep=' ', dtype=np.int32)
+        # TODO: see if this option is faster:
+        # arr = np.array(clean.split(), dtype=np.int32)
 
         # too few values means the file is invalid
         if arr.size < 10:
