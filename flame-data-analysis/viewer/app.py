@@ -15,6 +15,7 @@ class SpectrumViewer(tk.Tk):
         super().__init__()
         self.title("Flame Spectrum Viewer")
         self.geometry("1200x700")
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.file_paths: dict = {}
         self.show_irradiance = tk.BooleanVar(value=False)
         self.wavelengths: np.ndarray = WAVELENGTHS
@@ -31,7 +32,7 @@ class SpectrumViewer(tk.Tk):
 
         self.irradiance_check = tk.Checkbutton(top, text="Show irradiance", variable=self.show_irradiance, state=tk.DISABLED, command=self._on_select)
         self.irradiance_check.pack(side=tk.RIGHT, padx=4)
-        self.cal_button = tk.Button(top, text="● Load calibration", command=self._load_calibration)
+        self.cal_button = tk.Button(top, text="● No calibration", fg='gray', command=self._load_calibration)
         self.cal_button.pack(side=tk.RIGHT, padx=4)
 
         # main area: left list + right plot
@@ -60,6 +61,10 @@ class SpectrumViewer(tk.Tk):
         # status bar
         self.status = tk.Label(self, text="", anchor='w', fg='gray', font=('', 8))
         self.status.pack(side=tk.BOTTOM, fill=tk.X, padx=8, pady=2)
+
+    def _on_close(self):
+        plt.close('all')
+        self.destroy()
 
     def _open_folder(self):
         path = filedialog.askdirectory()
@@ -98,7 +103,6 @@ class SpectrumViewer(tk.Tk):
                     factors.append(float(parts[1]))
         self.wavelengths = np.array(wavelengths)
         self.cal_factors = np.array(factors)
-        print(f"Loaded {len(self.cal_factors)} factors, min={self.cal_factors.min():.4e}, max={self.cal_factors.max():.4e}, zeros={np.sum(self.cal_factors == 0)}")
         self.cal_button.config(text=f"● {spectrometer}", fg='green')
         self.irradiance_check.config(state=tk.NORMAL)
 
